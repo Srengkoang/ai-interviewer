@@ -1,36 +1,56 @@
 require("dotenv").config();
 
 const Groq = require("groq-sdk");
+const { parseAIResponse } = require("../utils/aiParser");
 
-const apiKey = process.env.GROQ_API_KEY || process.env.GROP_API_KEY;
-let groq;
+let groq = null;
 
+/**
+ * Create or return the Groq client
+ */
 const getGroqClient = () => {
-    if (!apiKey) {
+    if (!process.env.GROQ_API_KEY) {
         throw new Error("Missing GROQ_API_KEY environment variable.");
     }
 
     if (!groq) {
-        groq = new Groq({ apiKey });
+        groq = new Groq({
+            apiKey: process.env.GROQ_API_KEY,
+        });
     }
 
     return groq;
 };
 
-const generateText = async (prompt) => {
+/**
+ * Send a prompt to Groq and return parsed JSON.
+ *
+ * @param {string} prompt
+ * @returns {Promise<Object>}
+ */
+const generateAIResponse = async (prompt) => {
     try {
         const response = await getGroqClient().chat.completions.create({
-            messages: [{ role: "user", content: prompt }],
             model: "llama-3.3-70b-versatile",
+            temperature: 0.3,
+            messages: [
+                {
+                    role: "user",
+                    content: prompt,
+                },
+            ],
         });
 
-        return response.choices[0].message.content;
+        const text = response.choices[0].message.content;
+
+        return parseAIResponse(text);
     } catch (error) {
-        console.error("Groq API Error:", error);
-        throw error;
+        console.error("Groq API Error:", error.message);
+
+        throw new Error("Failed to generate AI response.");
     }
 };
 
 module.exports = {
-    generateText,
+    generateAIResponse,
 };
