@@ -1,5 +1,6 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
+import Instruction from '../pages/Homepage/Instruction'
 
 const Navbar = () => {
   return (
@@ -28,7 +29,14 @@ const Navbar = () => {
         </NavLink>
 
         <NavLink 
-          to="/interview"
+          to="/cv-upload"
+          className="flex flex-row items-center"
+        >
+          <p>Interview</p>
+        </NavLink>
+
+        <NavLink 
+          to="/Instruction"
           className="flex flex-row items-center"
         >
           <p>Instruction</p>

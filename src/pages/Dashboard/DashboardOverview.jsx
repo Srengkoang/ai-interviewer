@@ -1,7 +1,10 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 
 const DashboardOverview = () => {
+    const navigate = useNavigate();
   return (
+    
     <div className='container mx-auto px-4'>
       
       <div className='text-start mt-6'>
@@ -12,7 +15,9 @@ const DashboardOverview = () => {
 
       <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mx-auto max-w-7xl'>
 
-        <div className='border bg-card rounded-lg text-card-foreground shadow-lg transition-all hover:border-blue-500 min-h-[280px] mt-8'>
+        <div
+        onClick={() => navigate("/dashboardusers")}
+        className='border bg-card rounded-lg text-card-foreground shadow-lg transition-all hover:border-blue-500 min-h-[280px] mt-8'>
           <div className='p-8 h-full flex flex-col justify-center'>
             <h4 className='text-xl font-bold text-[#9AB17A] mb-3'>
               Total Users
@@ -24,7 +29,9 @@ const DashboardOverview = () => {
         </div>
 
 
-        <div className='border bg-card rounded-lg text-card-foreground shadow-lg transition-all hover:border-blue-500 min-h-[280px] mt-8'>
+        <div 
+         onClick={() => navigate("/dashboardtotalinterviews")}
+         className='border bg-card rounded-lg text-card-foreground shadow-lg transition-all hover:border-blue-500 min-h-[280px] mt-8'>
           <div className='p-8 h-full flex flex-col justify-center'>
             <h4 className='text-xl font-bold text-[#9AB17A] mb-3'>
               Total Interviews

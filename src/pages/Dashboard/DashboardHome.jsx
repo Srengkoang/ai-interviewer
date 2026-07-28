@@ -1,6 +1,7 @@
 import React from 'react'
 import DashboardSidebar from './DashboardSidebar'
 import DashboardOverview from './DashboardOverview'
+import DashboardIUsers from './DashboardUsers'
 
 const DashboardHome = () => {
   return (

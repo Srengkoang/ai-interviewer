@@ -20,7 +20,7 @@ const DashboardSidebar = () => {
 
       <div className="flex flex-col gap-4 pt-6 pl-[20%]">
         <NavLink
-          to="/dashboard"
+          to="/DashboardUsers"
           className="flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-xl"
         >
           <img
