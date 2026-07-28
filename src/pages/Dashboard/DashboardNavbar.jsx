@@ -1,7 +1,7 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
 
-const Navbar = () => {
+const DashboardNavbar = () => {
   return (
     <div className="flex items-center justify-between py-7 px-6 font-semibold bg-[rgb(195,204,155)]">
 
@@ -21,17 +21,10 @@ const Navbar = () => {
         </NavLink>
 
         <NavLink 
-          to="/Dashboard"
-          className="flex flex-row items-center gap-2"
-        >
-          <p>Dashboard</p>
-        </NavLink>
-
-        <NavLink 
           to="/interview"
           className="flex flex-row items-center"
         >
-          <p>Instruction</p>
+          <p>Interview</p>
         </NavLink>
 
 
@@ -48,4 +41,4 @@ const Navbar = () => {
   )
 }
 
-export default Navbar
+export default DashboardNavbar
