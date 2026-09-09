@@ -1,5 +1,6 @@
 const { generateAIResponse } = require("../config/groq");
 const { validateAIOutput } = require("../utils/validateAIOutput");
+const { aiQueue } = require("../judge/executionQueue");
 
 const { buildTechnicalInterviewPrompt } = require("../prompts/ai/technicalInterviewPrompt");
 const { buildResumePrompt } = require("../prompts/ai/resumePrompt");
@@ -23,22 +24,46 @@ const finalReportSchema = require("../schemas/ai/finalReportSchema");
  * Retries on either a JSON-parse failure (thrown inside
  * generateAIResponse) or a schema validation failure.
  */
+
+const MIN_GAP_BETWEEN_AI_CALLS_MS = 8000; // spaces calls out to stay under Groq's TPM limit
+let lastAiCallTimestamp = 0;
+
 const runPrompt = async (promptBuilder, data, schema, featureName, options = {}) => {
-    const { maxRetries = 1 } = options;
+    const { maxRetries = 2 } = options;
     const prompt = promptBuilder(data);
 
     let lastError;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-        const result = await generateAIResponse(prompt);
-        //console.log(`[${featureName}] RAW RESULT:`, JSON.stringify(result, null, 2)); // TEMP
-        return validateAIOutput(result, schema, featureName);
-    } catch (err) {
-        lastError = err;
-        console.warn(`[runPrompt:${featureName}] Attempt ${attempt + 1} failed: ${err.message}`);
+        try {
+            const result = await aiQueue.run(async () => {
+                // Enforce a minimum gap since the last AI call started,
+                // on top of the concurrency limit — this is what actually
+                // keeps token usage spread out over time, not just avoiding
+                // simultaneous requests.
+                const now = Date.now();
+                const elapsed = now - lastAiCallTimestamp;
+                if (elapsed < MIN_GAP_BETWEEN_AI_CALLS_MS) {
+                    await new Promise((r) => setTimeout(r, MIN_GAP_BETWEEN_AI_CALLS_MS - elapsed));
+                }
+                lastAiCallTimestamp = Date.now();
+
+                return generateAIResponse(prompt);
+            });
+
+            return validateAIOutput(result, schema, featureName);
+        } catch (err) {
+            lastError = err;
+            console.warn(`[runPrompt:${featureName}] Attempt ${attempt + 1} failed: ${err.message}`);
+
+            const waitMatch = err.message.match(/try again in ([\d.]+)s/);
+            if (waitMatch) {
+                const waitMs = Math.ceil(parseFloat(waitMatch[1]) * 1000) + 500;
+                console.warn(`[runPrompt:${featureName}] Rate limited — waiting ${waitMs}ms before retry`);
+                await new Promise((resolve) => setTimeout(resolve, waitMs));
+            }
+        }
     }
- }
 
     throw new Error(`${featureName} failed after ${maxRetries + 1} attempt(s): ${lastError.message}`);
 };

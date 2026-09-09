@@ -197,3 +197,52 @@ Fallback response shape:
   "code_feedback": "Evaluation could not be completed due to a sandbox infrastructure failure, not a fault in the candidate's code. This submission should be re-run once the execution environment is available."
 }
 ```
+## Multi-Language Sandbox Support
+
+The Docker sandbox supports multiple languages via a central registry in
+`judge/languageConfig.js`. Each language entry defines its Docker image,
+expected filename, and run command:
+
+```javascript
+javascript: { image: "node:20-alpine", filename: "solution.js", runCommand: (f) => `node ${f}` },
+python:     { image: "python:3.12-alpine", filename: "solution.py", runCommand: (f) => `python3 ${f}` },
+```
+
+Adding a new language means adding one entry here — `dockerRunner.js` and
+`judgeService.js` require no changes. `programmingLanguage` from the request
+body is normalized via `resolveLanguage()` (e.g. "Python 3", "python", "py"
+all map to the same config).
+
+Currently supported: **JavaScript, Python**.
+
+## Concurrency & Rate Limiting
+
+Load testing revealed two separate bottlenecks under concurrent submissions,
+handled by two independent queues in `judge/executionQueue.js`:
+
+| Queue | Limit | Purpose |
+|---|---|---|
+| `sandboxQueue` | 5 concurrent | Caps simultaneous Docker containers, based on empirical host CPU limits (`--cpus=0.5` per container) |
+| `aiQueue` | 1 concurrent, 8s min spacing | Prevents exceeding Groq's rate limit (8,000 tokens/minute on the current tier) when multiple AI-005 evaluations would otherwise fire at once |
+
+**Why both are needed:** the Docker queue alone was not sufficient — Groq's
+token-per-minute limit is a separate constraint from host CPU, and multiple
+AI calls firing simultaneously (even after Docker execution succeeded) can
+independently trigger 429 rate-limit errors.
+
+**Result:** 10 concurrent submissions succeed 10/10 with both queues active
+(vs. a 40-90% failure rate without them), at the cost of increased total
+wait time under load — submissions queue instead of failing.
+
+`runPrompt` in `aiService.js` also parses Groq's rate-limit error message
+directly (`"Please try again in Xs"`) and waits that exact duration before
+retrying, as a secondary safety net on top of the queue.
+
+**If deploying to different hardware or a higher Groq tier**, these limits
+(`sandboxQueue`'s `maxConcurrent`, `aiQueue`'s `maxConcurrent` and
+`MIN_GAP_BETWEEN_AI_CALLS_MS`) should be re-tuned via load testing rather
+than assumed to transfer as-is.
+
+**Important:** `config/groq.js`'s error handler must preserve the original
+Groq error message (not replace it with a generic string) for the rate-limit
+parsing in `runPrompt` to work correctly.

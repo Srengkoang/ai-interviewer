@@ -47,7 +47,7 @@ const generateAIResponse = async (prompt) => {
     } catch (error) {
         console.error("Groq API Error:", error.message);
 
-        throw new Error("Failed to generate AI response.");
+        throw new Error(error.message);
     }
 };
 

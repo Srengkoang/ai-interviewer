@@ -1,5 +1,6 @@
 const { evaluateSubmission, isInfrastructureFailure } = require("../judge/judgeService");
 const { generateCodeEvaluation } = require("../services/aiService");
+const { sandboxQueue } = require("../judge/executionQueue");
 
 const INFRASTRUCTURE_FAILURE_RESPONSE = {
     score: 0,
@@ -17,12 +18,15 @@ const submitCode = async (req, res) => {
     try {
         const { candidateCode, testCases, programmingLanguage, experienceLevel, problemStatement } = req.body;
 
-        const { executionResult, results } = await evaluateSubmission(candidateCode, testCases);
+        console.log("[submitCode] Queue status before submit:", sandboxQueue.getStatus());
 
-        // Backend-level safety net: if the sandbox itself failed (not the
-        // candidate's code), skip calling the AI entirely and return the
-        // fallback directly — no dependency on the model following the
-        // prompt's infrastructure-failure instruction correctly.
+        // Wrap the actual sandbox execution in the queue — this is the
+        // only change: everything inside the function is identical to
+        // before, it just waits for a free slot before running.
+        const { executionResult, results } = await sandboxQueue.run(() =>
+            evaluateSubmission(candidateCode, testCases, programmingLanguage)
+        );
+
         if (isInfrastructureFailure(results)) {
             console.warn("[submitCode] Detected infrastructure failure — skipping AI evaluation.");
             return res.json({ success: true, data: INFRASTRUCTURE_FAILURE_RESPONSE });

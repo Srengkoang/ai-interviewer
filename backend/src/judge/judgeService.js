@@ -1,20 +1,13 @@
 const { runInSandbox } = require("./dockerRunner");
 
-/**
- * Runs candidate code against a list of test cases and produces
- * a structured summary, plus a human-readable executionResult
- * string ready to feed into AI-005 (generateCodeEvaluation).
- *
- * @param {string} code
- * @param {Array<{input: string, expectedOutput: string}>} testCases
- */
-const evaluateSubmission = async (code, testCases) => {
+const evaluateSubmission = async (code, testCases, programmingLanguage = "javascript") => {
     const results = [];
 
     for (const [index, testCase] of testCases.entries()) {
         const { stdout, stderr, timedOut, exitCode } = await runInSandbox(
             code,
-            testCase.input
+            testCase.input,
+            programmingLanguage
         );
 
         const actualOutput = stdout.trim();
@@ -41,8 +34,6 @@ const evaluateSubmission = async (code, testCases) => {
     }
 
     const passedCount = results.filter((r) => r.status === "passed").length;
-
-    // Build the plain-English summary AI-005's prompt expects
     const executionResult = buildExecutionResultSummary(results, passedCount, testCases.length);
 
     console.log("RAW EXECUTION RESULT:", executionResult);
@@ -74,15 +65,6 @@ const buildExecutionResultSummary = (results, passedCount, totalCount) => {
     return lines.join(" ");
 };
 
-module.exports = { evaluateSubmission };
-/**
- * Detects whether every test case failed due to the sandbox/execution
- * environment itself breaking (Docker not reachable, daemon down, etc.)
- * rather than the candidate's code producing wrong output.
- *
- * This is a deterministic backend-level safety net — it doesn't rely on
- * the AI correctly recognizing an infrastructure failure on its own.
- */
 const isInfrastructureFailure = (results) => {
     if (results.length === 0) return false;
 
