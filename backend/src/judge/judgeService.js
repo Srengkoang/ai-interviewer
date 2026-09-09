@@ -75,3 +75,26 @@ const buildExecutionResultSummary = (results, passedCount, totalCount) => {
 };
 
 module.exports = { evaluateSubmission };
+/**
+ * Detects whether every test case failed due to the sandbox/execution
+ * environment itself breaking (Docker not reachable, daemon down, etc.)
+ * rather than the candidate's code producing wrong output.
+ *
+ * This is a deterministic backend-level safety net — it doesn't rely on
+ * the AI correctly recognizing an infrastructure failure on its own.
+ */
+const isInfrastructureFailure = (results) => {
+    if (results.length === 0) return false;
+
+    const allFailed = results.every((r) => r.status === "runtime_error");
+    if (!allFailed) return false;
+
+    const infraKeywords = ["docker", "daemon", "npipe", "connect", "ENOENT", "engine"];
+    return results.every((r) =>
+        infraKeywords.some((keyword) =>
+            (r.stderr || "").toLowerCase().includes(keyword.toLowerCase())
+        )
+    );
+};
+
+module.exports = { evaluateSubmission, isInfrastructureFailure };

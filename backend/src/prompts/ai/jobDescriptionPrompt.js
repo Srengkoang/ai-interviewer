@@ -19,12 +19,13 @@ JOB DESCRIPTION:
 ${jobDescription}
 
 REQUIREMENTS:
-- Identify the key technical skills, responsibilities, and technologies from the job description before generating questions.
 - Every question must map directly to a requirement or responsibility mentioned in the job description.
 - Do not ask about technologies, frameworks, or skills that are not explicitly mentioned or reasonably implied.
 - If Question Type is "Coding", include a clear programming task.
 - If Question Type is "Mixed", balance theoretical and coding questions as evenly as possible.
 - Do not include answers, hints, explanations, or evaluation criteria.
+- Each question's "type" field must be exactly one of: "theoretical", "coding", "design". Do not use any other value, and do not invent new categories.
+- Use "theoretical" for concept-explanation questions, "coding" for questions requiring the candidate to write code, and "design" for schema/architecture/system-design questions that don't require writing actual code.
 
 Return ONLY valid JSON in this format:
 

@@ -146,3 +146,54 @@ Validated JSON response (score, correctness, strengths, weaknesses, etc.)
   per-feature if a specific prompt needs more resilience.
 - Frontend integration (Monaco Editor wiring, how test cases are authored/stored per
   problem) is outside this module's scope.
+
+## Model Migration Notes (Groq deprecated llama-3.3-70b-versatile)
+
+Groq deprecated `llama-3.3-70b-versatile` in mid-2026. The module now uses
+`openai/gpt-oss-120b` (configured in `config/groq.js`). This migration
+surfaced a few model-behavior differences worth knowing about:
+
+- **AI-001 / AI-003 question `type` field**: the new model classifies some
+  questions as `"design"` (schema/architecture questions) in addition to
+  `"theoretical"` and `"coding"`. Both the prompt and schema now explicitly
+  support all three values.
+- **AI-007 recommendation consistency**: added a stricter rule requiring
+  `recommendation` to match `overall_score` per the guideline table, since
+  enum drift is a recurring risk when swapping models.
+- If migrating to a different model again in the future, re-run the smoke
+  tests for all 7 features and pay close attention to any field with a
+  fixed enum (`type`, `correctness`, `recommendation`) — these are the
+  fields most likely to need re-tuning after a model swap.
+
+## AI-005 Infrastructure Failure Handling
+
+If the Docker sandbox itself fails (e.g., Docker Desktop isn't running,
+the daemon is unreachable) rather than the candidate's code failing, the
+system must not score the candidate — doing so would be an invalid,
+unfair evaluation based on a broken environment rather than actual code.
+
+This is handled with two layers of defense:
+
+1. **Backend-level check** (`judge/judgeService.js` → `isInfrastructureFailure`,
+   used in `controllers/submissionController.js`): deterministically detects
+   when all test cases failed with infrastructure-related error text (e.g.
+   "docker", "daemon", "npipe", "connect") and returns a fixed fallback
+   response **without calling the AI at all**.
+2. **Prompt-level check** (`prompts/ai/codeEvaluationPrompt.js`): as a second
+   layer, the prompt itself instructs the model to recognize infrastructure
+   failures and return the same fallback response, in case an error pattern
+   isn't caught by the backend keyword list.
+
+Fallback response shape:
+```json
+{
+  "score": 0,
+  "correctness": "fail",
+  "time_complexity_estimate": "unknown",
+  "space_complexity_estimate": "unknown",
+  "strengths": [],
+  "weaknesses": [],
+  "edge_cases_missed": [],
+  "code_feedback": "Evaluation could not be completed due to a sandbox infrastructure failure, not a fault in the candidate's code. This submission should be re-run once the execution environment is available."
+}
+```

@@ -30,14 +30,15 @@ const runPrompt = async (promptBuilder, data, schema, featureName, options = {})
     let lastError;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-            const result = await generateAIResponse(prompt);
-            return validateAIOutput(result, schema, featureName);
-        } catch (err) {
-            lastError = err;
-            console.warn(`[runPrompt:${featureName}] Attempt ${attempt + 1} failed: ${err.message}`);
-        }
+    try {
+        const result = await generateAIResponse(prompt);
+        //console.log(`[${featureName}] RAW RESULT:`, JSON.stringify(result, null, 2)); // TEMP
+        return validateAIOutput(result, schema, featureName);
+    } catch (err) {
+        lastError = err;
+        console.warn(`[runPrompt:${featureName}] Attempt ${attempt + 1} failed: ${err.message}`);
     }
+ }
 
     throw new Error(`${featureName} failed after ${maxRetries + 1} attempt(s): ${lastError.message}`);
 };

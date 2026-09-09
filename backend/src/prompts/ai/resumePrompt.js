@@ -1,55 +1,71 @@
-const buildResumePrompt = (data) => {
+const buildResumePrompt = ({
+    jobTitle,
+    experienceLevel,
+    resume,
+    focusAreas,
+    questionCount,
+}) => {
+
     return `
-You are a senior technical interviewer preparing personalized interview questions based on a candidate's resume.
 
-TASK
+You are a senior technical interviewer creating personalized interview questions based on a candidate's resume.
 
-Read the resume below and generate exactly ${data.question_count} interview questions that reference the candidate's real experience.
+TASK:
 
-ROLE CONTEXT
+Generate exactly ${questionCount} interview questions based on the candidate's actual resume and suitable for a real software engineering interview.
 
-Target Job Title:
-${data.job_title}
+ROLE CONTEXT:
 
-Experience Level:
-${data.experience_level}
+Job Title: ${jobTitle}
+
+Experience Level: ${experienceLevel}
 
 Focus Areas:
-${data.focus_areas}
 
-CANDIDATE RESUME
-${data.resume}
+${focusAreas}
 
-REQUIREMENTS
-- Every question must reference something explicitly mentioned in the resume.
-- Do not invent projects, technologies, or experience.
-- Encourage the candidate to explain technical decisions, challenges, and trade-offs.
+CANDIDATE RESUME:
+
+${resume}
+
+REQUIREMENTS:
+
+- Each question must be based on something explicitly mentioned in the candidate's resume.
+- Do not invent projects, technologies, responsibilities, achievements, or experience that are not mentioned in the resume.
+- Use the candidate's actual projects, technologies, experiences, and technical decisions as the basis for the questions.
+- Questions should be appropriate for the specified job title and experience level.
+- Focus on the requested focus areas.
+- Encourage the candidate to explain technical decisions, implementation details, challenges, problem-solving approaches, and trade-offs.
 - Avoid duplicate questions.
 - Do not include answers.
 - Do not include commentary.
+- Do not ask the candidate for additional information.
+- Generate the questions directly from the provided resume.
+- Return exactly ${questionCount} questions.
 
-VALIDATION RULES
-- Return exactly ${data.question_count} questions.
-- Every question must reference a resume item.
-- Return valid JSON only.
-- Do not include Markdown.
-
-OUTPUT FORMAT
+Return ONLY valid JSON in this format:
 
 {
   "questions": [
     {
-      "id": "string",
-      "based_on": "string",
+      "id": "q1",
+      "based_on": "specific resume item",
       "topic": "string",
       "question_text": "string",
-      "skills_tested": [
-        "string"
-      ],
-      "estimated_time": "string"
+      "skills_tested": ["string"],
+      "estimated_time": "10-15 minutes"
+    },
+    {
+      "id": "q2",
+      "based_on": "specific resume item",
+      "topic": "string",
+      "question_text": "string",
+      "skills_tested": ["string"],
+      "estimated_time": "10-15 minutes"
     }
   ]
 }
+
 `;
 };
 

@@ -26,6 +26,10 @@ ${difficulty}
 Question Type:
 ${questionType}
 
+REQUIREMENTS:
+- Each question's "type" field must be exactly one of: "theoretical", "coding", "design". Do not use any other value, and do not invent new categories.
+- Use "theoretical" for concept-explanation questions, "coding" for questions requiring the candidate to write code, and "design" for schema/architecture/system-design questions that don't require writing actual code.
+
 Return ONLY valid JSON in this format:
 
 {
@@ -33,6 +37,15 @@ Return ONLY valid JSON in this format:
     {
       "id":"q1",
       "type":"theoretical",
+      "topic":"string",
+      "difficulty":"medium",
+      "skills":["string"],
+      "estimated_time":"10-15 minutes",
+      "question_text":"string"
+    },
+    {
+      "id":"q2",
+      "type":"design",
       "topic":"string",
       "difficulty":"medium",
       "skills":["string"],

@@ -9,7 +9,7 @@ module.exports = {
                 properties: {
                     id: { type: "string" },
                     maps_to_requirement: { type: "string" },
-                    type: { type: "string", enum: ["theoretical", "coding"] },
+                    type: { type: "string", enum: ["theoretical", "coding", "design"] },
                     topic: { type: "string" },
                     skills_tested: { type: "array", items: { type: "string" } },
                     estimated_time: { type: "string" },

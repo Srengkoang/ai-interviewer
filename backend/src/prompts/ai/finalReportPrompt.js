@@ -42,7 +42,7 @@ SCORING:
 - Use existing scores as the primary input and adjust only based on role-critical skills.
 
 RECOMMENDATION:
-Must be exactly one of: "Strong Hire", "Hire", "Lean Hire", "No Hire", "Strong No Hire"
+"recommendation" must be EXACTLY one of these five strings, spelled and capitalized exactly as shown, with no other value permitted: "Strong Hire", "Hire", "Lean Hire", "No Hire", "Strong No Hire"
 
 Guideline:
 - 90-100: Strong Hire
@@ -50,6 +50,8 @@ Guideline:
 - 65-74: Lean Hire
 - 50-64: No Hire
 - Below 50: Strong No Hire
+
+The chosen recommendation MUST match the overall_score using the guideline above. Do not choose a recommendation that contradicts the score.
 
 Return ONLY valid JSON in this format:
 

@@ -8,7 +8,7 @@ module.exports = {
                 type: "object",
                 properties: {
                     id: { type: "string" },
-                    type: { type: "string", enum: ["theoretical", "coding"] },
+                    type: { type: "string", enum: ["theoretical", "coding", "design"] },
                     topic: { type: "string" },
                     difficulty: { type: "string", enum: ["easy", "medium", "hard"] },
                     skills: { type: "array", items: { type: "string" } },
