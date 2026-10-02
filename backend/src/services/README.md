@@ -12,6 +12,13 @@ services/aiService.js → wires prompts + schemas together via a shared runPromp
 config/groq.js → talks to the Groq API, parses JSON, throws on invalid JSON
 utils/aiParser.js → strips markdown fences and parses raw model output into JSON
 utils/validateAIOutput.js → validates parsed JSON against a schema, throws on mismatch
+### How to run
+
+```bash
+cd backend
+npm test              # fast suite — schema validation only, no API calls, safe to run anytime
+npx jest tests/smoke.test.js   # live smoke test — run sparingly, counts against the 8,000 TPM rate limit
+```
 
 ## How a request flows
 
@@ -246,3 +253,31 @@ than assumed to transfer as-is.
 **Important:** `config/groq.js`'s error handler must preserve the original
 Groq error message (not replace it with a generic string) for the rate-limit
 parsing in `runPrompt` to work correctly.
+
+## Automated Tests
+
+A Jest test suite exists at `backend/tests/`, covering all 7 AI features
+and locking in every consistency rule discovered during manual debugging.
+
+| File | What it covers | Calls real API? |
+|---|---|---|
+| `tests/aiOutputValidation.test.js` | AI-005 (correctness enum, 0-100 score range, infrastructure-failure fallback) and AI-007 (recommendation enum, score-band consistency) | No — schema validation only |
+| `tests/aiOutputValidation2.test.js` | AI-001/003 (the `design` question type), AI-002 (resume traceability via `based_on`), AI-004 (follow-up null/non-null consistency), AI-006 (0-10 score scale, distinct from AI-005's 0-100) | No — schema validation only |
+| `tests/smoke.test.js` | Live connectivity check against the real Groq API | Yes |
+
+
+
+### Why mocked instead of live
+
+Most tests validate parsed JSON directly against the existing `ajv` schemas
+in `schemas/ai/`, rather than calling Groq. This makes the suite fast, free,
+and safe to run on every change — the live smoke test exists separately to
+confirm the actual API connection still works (e.g., catching a future
+model deprecation early), without burning the rate limit on every test run.
+
+### Adding a new test
+
+Follow the existing pattern: import the relevant schema from `schemas/ai/`,
+construct a known-good and a known-bad example object, and assert
+`validateAIOutput(...)` does or doesn't throw. No live API call needed
+unless specifically testing connectivity.
