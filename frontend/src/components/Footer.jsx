@@ -10,7 +10,7 @@ const Footer = () => {
             <ul className="flex flex-row gap-6 text-sm text-gray-700 px-6 justify-center ">
               <li className='flex flex-col items-center max-w-xs ml-40'>
                 <img
-                  src="/logo.png"
+                  src="/favicon.svg"
                   className="w-50"
                   alt="AI Interviewer Logo"
                 />

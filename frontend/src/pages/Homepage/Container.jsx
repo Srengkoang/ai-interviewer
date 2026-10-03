@@ -3,7 +3,7 @@ import JobInterviewing from "../../assets/images1.jpg"
 
 const Container = () => {
   return (
-    <div ClassName="absolute bg-grid-pattern opacity-5">
+    <div className="absolute bg-grid-pattern opacity-5">
             <div className="container relative mx-auto px-6 py-20 md:30 lg:40">
                 <div className="grid sm:grid-cols-1 lg:grid-cols-2 items-center gap-4">
                     <div className="space-y-5">

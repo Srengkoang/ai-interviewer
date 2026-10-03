@@ -6,7 +6,7 @@ const DashboardNavbar = () => {
     <div className="flex items-center justify-between py-7 px-6 font-semibold bg-[rgb(195,204,155)]">
 
       <img 
-        src="/logo.png"
+        src="/favicon.svg"
         className="w-40"
         alt="AI Interviewer Logo"
       />
