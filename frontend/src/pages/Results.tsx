@@ -1,0 +1,251 @@
+import { useEffect, useRef, useState } from "react"
+import { ArrowLeft, Award, CheckCircle2, Lightbulb, Target } from "lucide-react"
+import { Link, useLocation } from "react-router"
+import { useAuth } from "../app/auth"
+import { apiPost } from "../lib/api"
+import { getInterviews, getSession } from "../lib/storage"
+import {
+  Badge,
+  Button,
+  Card,
+  ErrorState,
+  PageHeader,
+  SectionTitle,
+  Skeleton,
+} from "../components/ui"
+import { ScoreBadge } from "../components/Feedback"
+
+type Report = {
+  candidate_name: string
+  job_title: string
+  overall_score: number
+  technical_evaluation: string
+  communication_evaluation: string
+  strengths: string[]
+  weaknesses: string[]
+  recommendation: "Strong Hire" | "Hire" | "Lean Hire" | "No Hire" | "Strong No Hire"
+  recommendation_justification: string
+  summary: string
+}
+
+const previewReport: Report = {
+  candidate_name: "Alex Chen",
+  job_title: "Backend Developer",
+  overall_score: 86,
+  technical_evaluation:
+    "Demonstrated strong fundamentals in API design, data access, and pragmatic reliability trade-offs.",
+  communication_evaluation:
+    "Explanations were organized and concise, with helpful examples and clear reasoning.",
+  strengths: [
+    "Explains technical trade-offs clearly",
+    "Strong API and database fundamentals",
+    "Tests assumptions before choosing an approach",
+  ],
+  weaknesses: [
+    "Could discuss observability in more depth",
+    "Consider more edge cases before implementation",
+  ],
+  recommendation: "Strong Hire",
+  recommendation_justification:
+    "Strong technical foundation with clear communication and practical problem-solving.",
+  summary:
+    "You showed a strong understanding of backend engineering fundamentals and communicated your reasoning clearly. Your answers balanced correctness with practical trade-offs.",
+}
+
+export default function ResultsPage() {
+  const { user } = useAuth()
+  const location = useLocation()
+  const candidateView = location.pathname.startsWith("/candidate")
+  const interview = getInterviews()[0]
+  const session = getSession()
+  const [report, setReport] = useState<Report | null>(
+    session.completed ? null : previewReport,
+  )
+  const [loading, setLoading] = useState(session.completed)
+  const [error, setError] = useState("")
+  const requested = useRef(false)
+
+  async function generate() {
+    if (!session.completed) {
+      setReport(previewReport)
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    setError("")
+    try {
+      const result = await apiPost<Report>("/api/ai/final-report", {
+        candidateName: user?.name || "Candidate",
+        jobTitle: interview.role,
+        experienceLevel: "Mid",
+        interviewTranscript: interview.questions
+          .map(
+            (question, index) =>
+              `Q${index + 1}: ${question.question_text}\nA${index + 1}: ${session.answers[question.id] || "No answer"}`,
+          )
+          .join("\n\n"),
+        perQuestionFeedback: Object.values(session.feedback).map((item) => ({
+          score: item.score,
+          missed_key_points: item.missed_key_points,
+        })),
+        codeEvaluations: Object.values(session.codeEvaluations).map((item) => ({
+          score: item.score,
+          correctness: item.correctness,
+          edge_cases_missed: item.edge_cases_missed,
+        })),
+      })
+      setReport(result)
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to build the final report.",
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (session.completed && !requested.current) {
+      requested.current = true
+      void generate()
+    }
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="report-loading">
+        <Award size={26} />
+        <h2>Preparing your interview feedback</h2>
+        <p>
+          We’re combining your answers and code evaluations into a clear report.
+        </p>
+        <Skeleton rows={5} />
+      </div>
+    )
+  }
+  if (error)
+    return (
+      <div className="results-wrap">
+        <ErrorState message={error} retry={generate} />
+      </div>
+    )
+  if (!report) return null
+
+  const recommendationTone = report.recommendation.includes("No")
+    ? "red"
+    : report.recommendation === "Lean Hire"
+      ? "amber"
+      : "green"
+
+  return (
+    <div className="results-wrap">
+      <Link
+        className="back-link"
+        to={candidateView ? "/candidate" : "/dashboard"}
+      >
+        <ArrowLeft size={16} /> Back to{" "}
+        {candidateView ? "interviews" : "dashboard"}
+      </Link>
+      <PageHeader
+        eyebrow={candidateView ? "Your interview feedback" : "Candidate report"}
+        title={
+          candidateView
+            ? `Great work, ${user?.name?.split(" ")[0] || "there"}`
+            : report.candidate_name
+        }
+        description={
+          candidateView
+            ? "Here is a summary of your performance and opportunities to keep growing."
+            : `${report.job_title} · Completed technical interview`
+        }
+      />
+      <Card className="report-hero">
+        <div className="report-score">
+          <ScoreBadge score={report.overall_score} />
+          <div>
+            <span className="hint">Overall score</span>
+            <strong>
+              {report.overall_score >= 80
+                ? "Strong performance"
+                : "Solid foundation"}
+            </strong>
+            <p>{report.summary}</p>
+          </div>
+        </div>
+        {!candidateView && (
+          <div className="recommendation-panel">
+            <span className="hint">Recommendation</span>
+            <Badge tone={recommendationTone}>{report.recommendation}</Badge>
+            <p>{report.recommendation_justification}</p>
+          </div>
+        )}
+      </Card>
+      <div className="report-grid">
+        <Card>
+          <SectionTitle
+            title="Your strengths"
+            action={
+              <span className="report-icon success">
+                <Award size={19} />
+              </span>
+            }
+          />
+          <ul className="report-list">
+            {report.strengths.map((item) => (
+              <li key={item}>
+                <CheckCircle2 size={17} />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </Card>
+        <Card>
+          <SectionTitle
+            title="Growth opportunities"
+            action={
+              <span className="report-icon amber">
+                <Lightbulb size={19} />
+              </span>
+            }
+          />
+          <ul className="report-list growth">
+            {report.weaknesses.map((item) => (
+              <li key={item}>
+                <Target size={17} />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </div>
+      <Card>
+        <SectionTitle
+          title="Detailed evaluation"
+          description="A closer look at your interview performance."
+        />
+        <div className="evaluation-grid">
+          <div>
+            <span className="label">Technical evaluation</span>
+            <p>{report.technical_evaluation}</p>
+          </div>
+          <div>
+            <span className="label">Communication</span>
+            <p>{report.communication_evaluation}</p>
+          </div>
+        </div>
+      </Card>
+      {candidateView && (
+        <div className="candidate-report-note">
+          <CheckCircle2 size={18} />
+          <p>
+            <strong>What happens next?</strong> The hiring team will review your
+            complete interview. They’ll contact you directly with any next
+            steps.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
