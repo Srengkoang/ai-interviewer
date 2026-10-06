@@ -28,6 +28,24 @@ const finalReportSchema = require("../schemas/ai/finalReportSchema");
 const MIN_GAP_BETWEEN_AI_CALLS_MS = 8000; // spaces calls out to stay under Groq's TPM limit
 let lastAiCallTimestamp = 0;
 
+const expectedRecommendation = (score) => {
+    if (score >= 90) return "Strong Hire";
+    if (score >= 75) return "Hire";
+    if (score >= 65) return "Lean Hire";
+    if (score >= 50) return "No Hire";
+    return "Strong No Hire";
+};
+
+const validateFinalReportConsistency = (report) => {
+    const expected = expectedRecommendation(report.overall_score);
+    if (report.recommendation !== expected) {
+        throw new Error(
+            `AI-007 recommendation "${report.recommendation}" does not match score ${report.overall_score}; expected "${expected}"`,
+        );
+    }
+    return report;
+};
+
 const runPrompt = async (promptBuilder, data, schema, featureName, options = {}) => {
     const { maxRetries = 2 } = options;
     const prompt = promptBuilder(data);
@@ -51,7 +69,10 @@ const runPrompt = async (promptBuilder, data, schema, featureName, options = {})
                 return generateAIResponse(prompt);
             });
 
-            return validateAIOutput(result, schema, featureName);
+            const validated = validateAIOutput(result, schema, featureName);
+            return featureName === "AI-007 Final Report"
+                ? validateFinalReportConsistency(validated)
+                : validated;
         } catch (err) {
             lastError = err;
             console.warn(`[runPrompt:${featureName}] Attempt ${attempt + 1} failed: ${err.message}`);
@@ -97,4 +118,6 @@ module.exports = {
     generateCodeEvaluation,
     generateFeedback,
     generateFinalReport,
+    expectedRecommendation,
+    validateFinalReportConsistency,
 };

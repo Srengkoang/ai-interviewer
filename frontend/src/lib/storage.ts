@@ -24,6 +24,8 @@ export type SessionState = {
   feedback: Record<string, Feedback>
   codeEvaluations: Record<string, CodeEvaluation>
   followUps: Record<string, string>
+  followUpAnswers: Record<string, string>
+  followUpFeedback: Record<string, Feedback>
   completed: boolean
 }
 
@@ -110,6 +112,8 @@ export function getSession(): SessionState {
     feedback: {},
     codeEvaluations: {},
     followUps: {},
+    followUpAnswers: {},
+    followUpFeedback: {},
     completed: false,
   }
   try {

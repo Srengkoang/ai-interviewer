@@ -15,7 +15,7 @@ utils/validateAIOutput.js → validates parsed JSON against a schema, throws on 
 ### How to run
 
 ```bash
-cd backend
+cd ai-service
 npm test              # fast suite — schema validation only, no API calls, safe to run anytime
 npx jest tests/smoke.test.js   # live smoke test — run sparingly, counts against the 8,000 TPM rate limit
 ```
@@ -37,7 +37,7 @@ Controller → aiService.<feature>(data)
 | AI-002 Resume Questions | `generateResumeQuestions` | `POST /api/ai/resume-questions` | ✅ Complete |
 | AI-003 Job Description Questions | `generateJobDescriptionQuestions` | `POST /api/ai/job-description-questions` | ✅ Complete |
 | AI-004 Follow-up Question | `generateFollowUpQuestions` | `POST /api/ai/follow-up-questions` | ✅ Complete |
-| AI-005 Code Evaluation | *(not yet wired)* | `POST /api/ai/code-evaluation` (planned) | ⏸️ Waiting on Docker sandbox |
+| AI-005 Code Evaluation | `generateCodeEvaluation` | `POST /api/submissions/execute` | ✅ Complete |
 | AI-006 Answer Feedback | `generateFeedback` | `POST /api/ai/feedback` | ✅ Complete |
 | AI-007 Final Report | `generateFinalReport` | `POST /api/ai/final-report` | ✅ Complete |
 
@@ -149,10 +149,11 @@ Validated JSON response (score, correctness, strengths, weaknesses, etc.)
   real Groq responses and (for AI-005) real Docker execution.
 - Current sandbox only supports JavaScript (`node:20-alpine`). Adding another language
   means adding another Docker image and adjusting `dockerRunner.js`'s run command.
-- `maxRetries` defaults to 1 (2 total attempts) per call in `runPrompt` — adjust
+- `maxRetries` defaults to 2 (3 total attempts) per call in `runPrompt` — adjust
   per-feature if a specific prompt needs more resilience.
-- Frontend integration (Monaco Editor wiring, how test cases are authored/stored per
-  problem) is outside this module's scope.
+- The frontend integration uses `/api/submissions/execute` for coding questions.
+- Request validation is applied at the route boundary; malformed requests return
+  HTTP 400 before any provider or Docker work starts.
 
 ## Model Migration Notes (Groq deprecated llama-3.3-70b-versatile)
 

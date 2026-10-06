@@ -9,6 +9,7 @@ const {
     generateFeedback,
     generateFinalReport,
 } = require("../controllers/aiController");
+const { validateRequest } = require("../utils/validateRequest");
 
 /**
  * @swagger
@@ -33,7 +34,7 @@ const {
  *       200:
  *         description: Generated questions
  */
-router.post("/questions", generateQuestions);
+router.post("/questions", validateRequest("technicalQuestions"), generateQuestions);
 
 /**
  * @swagger
@@ -57,7 +58,7 @@ router.post("/questions", generateQuestions);
  *       200:
  *         description: Generated questions grounded in resume content
  */
-router.post("/resume-questions", generateResumeInterviewQuestions);
+router.post("/resume-questions", validateRequest("resumeQuestions"), generateResumeInterviewQuestions);
 
 /**
  * @swagger
@@ -80,7 +81,7 @@ router.post("/resume-questions", generateResumeInterviewQuestions);
  *       200:
  *         description: Generated questions, each mapped to a job requirement
  */
-router.post("/job-description-questions", generateJobDescriptionQuestions);
+router.post("/job-description-questions", validateRequest("jobDescriptionQuestions"), generateJobDescriptionQuestions);
 
 /**
  * @swagger
@@ -104,7 +105,7 @@ router.post("/job-description-questions", generateJobDescriptionQuestions);
  *       200:
  *         description: follow_up_needed (boolean), reason, and follow_up_question (string or null)
  */
-router.post("/follow-up-questions", generateFollowUpQuestions);
+router.post("/follow-up-questions", validateRequest("followUpQuestions"), generateFollowUpQuestions);
 
 /**
  * @swagger
@@ -128,7 +129,7 @@ router.post("/follow-up-questions", generateFollowUpQuestions);
  *       200:
  *         description: score, strengths, weaknesses, feedback, missed_key_points
  */
-router.post("/feedback", generateFeedback);
+router.post("/feedback", validateRequest("feedback"), generateFeedback);
 
 /**
  * @swagger
@@ -153,6 +154,6 @@ router.post("/feedback", generateFeedback);
  *       200:
  *         description: overall_score, recommendation, strengths, weaknesses, summary
  */
-router.post("/final-report", generateFinalReport);
+router.post("/final-report", validateRequest("finalReport"), generateFinalReport);
 
 module.exports = router;

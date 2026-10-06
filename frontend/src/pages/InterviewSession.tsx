@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import Editor from "@monaco-editor/react"
 import {
   CheckCircle2,
@@ -27,7 +27,6 @@ import {
   Skeleton,
   Textarea,
 } from "../components/ui"
-import { CodeResult, FeedbackCard } from "../components/Feedback"
 
 type FollowUp = {
   follow_up_needed: boolean
@@ -56,21 +55,34 @@ export default function InterviewSessionPage() {
   const [error, setError] = useState("")
 
   const question = questions[session.current] || questions[questions.length - 1]
+  const followUpQuestion = session.followUps[question.id]
+  const answeringFollowUp = Boolean(followUpQuestion && !session.followUpFeedback[question.id])
+  const displayedQuestion = answeringFollowUp
+    ? { ...question, question_text: followUpQuestion }
+    : question
+  const answerKey = answeringFollowUp
+    ? `${question.id}:follow-up`
+    : question.id
   const progress = Math.min(
     ((session.current + 1) / questions.length) * 100,
     100,
   )
-  const existingFeedback = session.feedback[question.id]
+  const existingFeedback = answeringFollowUp
+    ? session.followUpFeedback[question.id]
+    : session.feedback[question.id]
   const existingCodeResult = session.codeEvaluations[question.id]
-  const followUp = session.followUps[question.id]
 
   useEffect(() => {
     saveSession(session)
   }, [session])
 
   useEffect(() => {
-    setAnswer(session.answers[question.id] || "")
-  }, [question.id, session.answers])
+    setAnswer(
+      answeringFollowUp
+        ? session.followUpAnswers[question.id] || ""
+        : session.answers[question.id] || "",
+    )
+  }, [answerKey, answeringFollowUp, question.id, session.answers, session.followUpAnswers])
 
   async function submitText() {
     if (!answer.trim()) return
@@ -78,39 +90,62 @@ export default function InterviewSessionPage() {
     setLoading("answer")
     const nextAnswers = { ...session.answers, [question.id]: answer }
     try {
-      const [feedback, follow] = await Promise.all([
-        apiPost<Feedback>("/api/ai/feedback", {
-          jobTitle: interview.role,
-          experienceLevel: "Mid",
-          question: question.question_text,
-          idealAnswerCriteria:
-            "A clear, accurate explanation with trade-offs and practical examples.",
-          candidateAnswer: answer,
-        }),
-        apiPost<FollowUp>("/api/ai/follow-up-questions", {
+      const feedback = await apiPost<Feedback>("/api/ai/feedback", {
+        jobTitle: interview.role,
+        experienceLevel: "Mid",
+        question: displayedQuestion.question_text,
+        idealAnswerCriteria:
+          "A clear, accurate explanation with trade-offs and practical examples.",
+        candidateAnswer: answer,
+      })
+
+      if (answeringFollowUp) {
+        setSession((current) => ({
+          ...current,
+          followUpAnswers: {
+            ...current.followUpAnswers,
+            [question.id]: answer,
+          },
+          followUpFeedback: {
+            ...current.followUpFeedback,
+            [question.id]: feedback,
+          },
+        }))
+      } else {
+        const follow = await apiPost<FollowUp>("/api/ai/follow-up-questions", {
           jobTitle: interview.role,
           experienceLevel: "Mid",
           conversationHistory: transcript(questions, nextAnswers),
           originalQuestion: question.question_text,
           candidateAnswer: answer,
-        }),
-      ])
-      setSession((current) => ({
-        ...current,
-        answers: nextAnswers,
-        feedback: { ...current.feedback, [question.id]: feedback },
-        followUps:
-          follow.follow_up_needed && follow.follow_up_question
-            ? { ...current.followUps, [question.id]: follow.follow_up_question }
-            : current.followUps,
-      }))
+        })
+        setSession((current) => ({
+          ...current,
+          answers: nextAnswers,
+          feedback: { ...current.feedback, [question.id]: feedback },
+          followUps:
+            follow.follow_up_needed && follow.follow_up_question
+              ? { ...current.followUps, [question.id]: follow.follow_up_question }
+              : current.followUps,
+        }))
+      }
     } catch (requestError) {
       setError(
         requestError instanceof Error
           ? requestError.message
           : "Unable to evaluate your answer.",
       )
-      setSession((current) => ({ ...current, answers: nextAnswers }))
+      setSession((current) =>
+        answeringFollowUp
+          ? {
+              ...current,
+              followUpAnswers: {
+                ...current.followUpAnswers,
+                [question.id]: answer,
+              },
+            }
+          : { ...current, answers: nextAnswers },
+      )
     } finally {
       setLoading(null)
     }
@@ -159,6 +194,7 @@ export default function InterviewSessionPage() {
     question.type === "coding"
       ? Boolean(existingCodeResult)
       : Boolean(existingFeedback)
+  const awaitingFollowUp = Boolean(followUpQuestion && !session.followUpFeedback[question.id])
 
   return (
     <div className="session-page">
@@ -199,7 +235,7 @@ export default function InterviewSessionPage() {
               <span>{question.topic}</span>
               <span>{question.difficulty}</span>
             </div>
-            <h1>{question.question_text}</h1>
+            <h1>{displayedQuestion.question_text}</h1>
           </div>
         </div>
 
@@ -247,7 +283,12 @@ export default function InterviewSessionPage() {
               </Button>
             </div>
             {loading === "code" && <EvaluationLoading />}
-            {existingCodeResult && <CodeResult result={existingCodeResult} />}
+            {existingCodeResult && (
+              <div className="submission-status">
+                <CheckCircle2 size={17} />
+                <span>Your solution was submitted and saved.</span>
+              </div>
+            )}
           </div>
         ) : (
           <div className="answer-area">
@@ -279,15 +320,14 @@ export default function InterviewSessionPage() {
                 <p>Reviewing your response and considering a follow-up…</p>
               </div>
             )}
-            {followUp && (
+            {followUpQuestion && !answeringFollowUp && (
               <div className="follow-up">
                 <span>
                   <MessageSquareText size={17} /> Adaptive follow-up
                 </span>
-                <strong>{followUp}</strong>
+                <strong>{followUpQuestion}</strong>
               </div>
             )}
-            {existingFeedback && <FeedbackCard feedback={existingFeedback} />}
           </div>
         )}
 
@@ -302,11 +342,11 @@ export default function InterviewSessionPage() {
             retry={question.type === "coding" ? submitCode : submitText}
           />
         )}
-        {hasResult && (
+        {hasResult && !awaitingFollowUp && (
           <div className="next-row">
             <div>
               <CheckCircle2 size={18} />
-              <span>Your response has been evaluated and saved.</span>
+              <span>Your response has been submitted and saved.</span>
             </div>
             <Button onClick={next}>
               {session.current === questions.length - 1

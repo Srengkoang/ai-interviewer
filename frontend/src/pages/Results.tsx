@@ -6,7 +6,6 @@ import { apiPost } from "../lib/api"
 import { getInterviews, getSession } from "../lib/storage"
 import {
   Badge,
-  Button,
   Card,
   ErrorState,
   PageHeader,
@@ -79,10 +78,18 @@ export default function ResultsPage() {
         jobTitle: interview.role,
         experienceLevel: "Mid",
         interviewTranscript: interview.questions
-          .map(
-            (question, index) =>
+          .flatMap((question, index) => {
+            const exchanges = [
               `Q${index + 1}: ${question.question_text}\nA${index + 1}: ${session.answers[question.id] || "No answer"}`,
-          )
+            ]
+            const followUp = session.followUps[question.id]
+            if (followUp) {
+              exchanges.push(
+                `Follow-up ${index + 1}: ${followUp}\nFollow-up answer: ${session.followUpAnswers[question.id] || "No answer"}`,
+              )
+            }
+            return exchanges
+          })
           .join("\n\n"),
         perQuestionFeedback: Object.values(session.feedback).map((item) => ({
           score: item.score,

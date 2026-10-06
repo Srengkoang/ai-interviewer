@@ -3,7 +3,9 @@ const { generateFollowUpQuestions } = require("../src/services/aiService");
 // This test hits the real Groq API — run sparingly to avoid rate limits.
 // Not part of the regular fast test suite; run manually with:
 // npx jest tests/smoke.test.js
-describe("Live smoke test", () => {
+const describeLive = process.env.RUN_LIVE_SMOKE === "1" ? describe : describe.skip;
+
+describeLive("Live smoke test", () => {
     it("AI-004 follow-up call succeeds against the real API", async () => {
         const result = await generateFollowUpQuestions({
             jobTitle: "Backend Developer",

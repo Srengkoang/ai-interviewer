@@ -1,6 +1,10 @@
 const codeEvaluationSchema = require("../src/schemas/ai/codeEvaluationSchema");
 const finalReportSchema = require("../src/schemas/ai/finalReportSchema");
 const { validateAIOutput } = require("../src/utils/validateAIOutput");
+const {
+    expectedRecommendation,
+    validateFinalReportConsistency,
+} = require("../src/services/aiService");
 
 describe("AI-005 Code Evaluation schema", () => {
     it("accepts a valid, internally consistent pass result", () => {
@@ -100,14 +104,6 @@ describe("AI-007 Final Report schema", () => {
  * from the prompt) so the test independently verifies the RULE itself,
  * not just that the prompt happens to mention it.
  */
-function expectedRecommendation(score) {
-    if (score >= 90) return "Strong Hire";
-    if (score >= 75) return "Hire";
-    if (score >= 65) return "Lean Hire";
-    if (score >= 50) return "No Hire";
-    return "Strong No Hire";
-}
-
 describe("AI-007 score/recommendation consistency rule", () => {
     it.each([
         [95, "Strong Hire"],
@@ -117,5 +113,14 @@ describe("AI-007 score/recommendation consistency rule", () => {
         [30, "Strong No Hire"],
     ])("score %i maps to %s", (score, expected) => {
         expect(expectedRecommendation(score)).toBe(expected);
+    });
+
+    it("rejects a valid-shaped report with an inconsistent recommendation", () => {
+        expect(() =>
+            validateFinalReportConsistency({
+                overall_score: 90,
+                recommendation: "Hire",
+            }),
+        ).toThrow(/does not match score/);
     });
 });

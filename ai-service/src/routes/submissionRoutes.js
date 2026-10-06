@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const { submitCode } = require("../controllers/submissionController");
+const { validateRequest } = require("../utils/validateRequest");
 
 /**
  * @swagger
@@ -31,6 +32,6 @@ const { submitCode } = require("../controllers/submissionController");
  *       200:
  *         description: score, correctness, strengths, weaknesses, edge_cases_missed, code_feedback
  */
-router.post("/execute", submitCode);
+router.post("/execute", validateRequest("codeSubmission"), submitCode);
 
 module.exports = router;
