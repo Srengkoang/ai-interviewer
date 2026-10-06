@@ -19,6 +19,33 @@ import {
 
 type Mode = "technical" | "resume" | "job" | "custom"
 
+function appendQuestions(
+  current: InterviewQuestion[],
+  incoming: InterviewQuestion[],
+) {
+  const usedIds = new Set(current.map((question) => question.id))
+
+  return [
+    ...current,
+    ...incoming.map((question) => {
+      const incomingId =
+        typeof question.id === "string" && question.id.length > 0
+          ? question.id
+          : null
+      let id = incomingId
+
+      if (!id || usedIds.has(id)) {
+        do {
+          id = crypto.randomUUID()
+        } while (usedIds.has(id))
+      }
+
+      usedIds.add(id)
+      return { ...question, id }
+    }),
+  ]
+}
+
 export default function CreateInterviewPage() {
   const navigate = useNavigate()
   const [mode, setMode] = useState<Mode>("technical")
@@ -63,7 +90,7 @@ export default function CreateInterviewPage() {
           questionCount: Number(data.get("questionCount")),
         })
       }
-      setQuestions((current) => [...current, ...result.questions])
+      setQuestions((current) => appendQuestions(current, result.questions))
     } catch (requestError) {
       setError(
         requestError instanceof Error
