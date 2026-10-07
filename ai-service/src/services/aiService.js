@@ -77,6 +77,12 @@ const runPrompt = async (promptBuilder, data, schema, featureName, options = {})
             lastError = err;
             console.warn(`[runPrompt:${featureName}] Attempt ${attempt + 1} failed: ${err.message}`);
 
+            if (/401|invalid_api_key|authentication/i.test(err.message)) {
+                throw new Error(
+                    "Groq authentication failed. Set a valid GROQ_API_KEY in ai-service/.env and restart the backend.",
+                );
+            }
+
             const waitMatch = err.message.match(/try again in ([\d.]+)s/);
             if (waitMatch) {
                 const waitMs = Math.ceil(parseFloat(waitMatch[1]) * 1000) + 500;

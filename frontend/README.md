@@ -26,18 +26,18 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173). The Vite server is
+Open [http://localhost:4000](http://localhost:4000). The Vite server is
 configured to listen on all interfaces, so it can also be opened from another
 device using the development machine's local IP address.
 
-The default port is `5173`. To use another port on Windows PowerShell:
+The default port is `4000`. To use another port on Windows PowerShell:
 
 ```powershell
-$env:PORT=5174
+$env:PORT=4001
 npm run dev
 ```
 
-If port `5173` is already in use, stop the existing Vite process or set a
+If port `4000` is already in use, stop the existing Vite process or set a
 different `PORT`.
 
 ## Environment variables

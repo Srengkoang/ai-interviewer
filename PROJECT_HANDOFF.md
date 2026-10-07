@@ -21,7 +21,7 @@ rotation and confirmation that secrets are never committed or shared.
 ## End-to-end architecture
 
 ```text
-Browser (React/Vite)
+Browser (React/Vite at http://localhost:4000)
   -> frontend/src/lib/api.ts
   -> POST http://localhost:5000/api/...
   -> Express app
